@@ -121,7 +121,7 @@ module GCal4Ruby
     def events
       events = []
       ret = @service.send_request(GData4Ruby::Request.new(:get, @content_uri))
-      REXML::Document.new(ret.body).root.elements.each("entry"){}.map do |entry|
+      REXML::Document.new(ret).root.elements.each("entry"){}.map do |entry|
         entry = GData4Ruby::Utils.add_namespaces(entry)
         e = Event.new(service)
         if e.load(entry.to_s)
@@ -242,6 +242,8 @@ module GCal4Ruby
         case ele.name
           when "id"
           @id = ele.text.gsub("http://www.google.com/calendar/feeds/default/calendars/", "")
+          @id = @id.gsub("http://www.google.com/calendar/feeds/default/owncalendars/full/", "")
+          @id = @id.gsub("http://www.google.com/calendar/feeds/default/allcalendars/full/", "")
           when "updated"
           @updated_at = Time.xmlschema ele.text
           when 'summary'
@@ -274,7 +276,7 @@ module GCal4Ruby
           @public = false
           return true
         end
-        r = REXML::Document.new(ret.read_body)
+        r = REXML::Document.new(ret)
         r.root.elements.each("entry") do |ele|
           e = GData4Ruby::ACL::AccessRule.new(service, self)
           ele = GData4Ruby::Utils.add_namespaces(ele)

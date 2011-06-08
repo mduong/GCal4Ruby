@@ -41,13 +41,14 @@ module GCal4Ruby
   #3. Get Calendar List that the authenticated user has owner access level to
   #    calendars = service.calendars(:only_owner_access_level => true)
   #
-  class Service < GData4Ruby::Service
+  class Service < GData4Ruby::OAuthService
     
     #Convenience attribute contains the currently authenticated account name
     attr_reader :account
         
     # The token returned by the Google servers, used to authorize all subsequent messages
     attr_reader :auth_token
+    attr_reader :access_token
     
     # Determines whether GCal4Ruby ensures a calendar is public.  Setting this to false can increase speeds by 
     # 50% but can cause errors if you try to do something to a calendar that is not public and you don't have
@@ -62,16 +63,22 @@ module GCal4Ruby
       end    
       @check_public ||= true
     end
+    
+    def default_event_feed
+      return "http://www.google.com/calendar/feeds/#{@account}/private/full"
+    end
 
     # The authenticate method passes the username and password to google servers.  
     # If authentication succeeds, returns true, otherwise raises the AuthenticationFailed error.
-    def authenticate(username, password, service='cl')
-      super(username, password, service)
+    def authenticate(options = {})
+      default_options = { :service => 'cl' }
+      options = default_options.merge(options)
+      super(options)
     end
     
     #Helper function to reauthenticate to a new Google service without having to re-set credentials.
-    def reauthenticate(service='cl')
-      authenticate(@account, @password, service)
+    def reauthenticate(options = {})
+      authenticate(options)
     end
   
     #Returns an array of Calendar objects for each calendar associated with 
@@ -79,13 +86,13 @@ module GCal4Ruby
     #available options are:
     #*:only_owner_access_level*:: A boolean flag that specifies whether to return only the list of calendars that the authenticated user has owner access to.    
     def calendars(options={})
-      if not @auth_token
-         raise NotAuthenticated
+      if not (@auth_token || @access_token)
+         raise GData4Ruby::NotAuthenticated
       end
       feed_url = options[:only_owner_access_level] ? GCal4Ruby::Calendar::OWN_CALENDARS_FEED : GCal4Ruby::Calendar::ALL_CALENDARS_FEED
-      ret = send_request(GData4Ruby::Request.new(:get, feed_url, nil, {"max-results" => "10000"}))
+      ret = send_request(GData4Ruby::Request.new(:get, feed_url, '', {"max-results" => "10000"}))
       cals = []
-      REXML::Document.new(ret.body).root.elements.each("entry"){}.map do |entry|
+      REXML::Document.new(ret).root.elements.each("entry"){}.map do |entry|
         entry = GData4Ruby::Utils.add_namespaces(entry)
         cal = Calendar.new(self)
         cal.load(entry.to_s)
@@ -96,12 +103,12 @@ module GCal4Ruby
     
     #Returns an array of Event objects for each event in this account
     def events
-      if not @auth_token
+      if not (@auth_token || @access_token)
          raise NotAuthenticated
       end
-      ret = send_request(GData4Ruby::Request.new(:get, Event.event_feed_uri(@account), nil, {"max-results" => "10000"}))
+      ret = send_request(GData4Ruby::Request.new(:get, Event.event_feed_uri(@account), '', {"max-results" => "10000"}))
       events = []
-      REXML::Document.new(ret.body).root.elements.each("entry"){}.map do |entry|
+      REXML::Document.new(ret).root.elements.each("entry"){}.map do |entry|
         entry = GData4Ruby::Utils.add_namespaces(entry)
         event = Event.new(self)
         event.load(entry.to_s)

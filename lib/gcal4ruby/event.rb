@@ -395,15 +395,15 @@ module GCal4Ruby
         if args[:calendar]
           feed_uri = args[:calendar].is_a?(Calendar) ? args[:calendar].content_uri : self.event_feed_uri(args[:calendar])
           args.delete(:calendar)
-          ret = service.send_request(GData4Ruby::Request.new(:get, feed_uri, nil, nil, args))
-          xml = REXML::Document.new(ret.body).root
+          ret = service.send_request(GData4Ruby::Request.new(:get, feed_uri, '', {}, args))
+          xml = REXML::Document.new(ret).root
           xml.elements.each("entry") do |e|
             results << get_instance(service, e)
           end
         else
           service.calendars.each do |cal|
-            ret = service.send_request(GData4Ruby::Request.new(:get, cal.content_uri, nil, nil, args))
-            xml = REXML::Document.new(ret.body).root
+            ret = service.send_request(GData4Ruby::Request.new(:get, cal.content_uri, '', {}, args))
+            xml = REXML::Document.new(ret).root
             xml.elements.each("entry") do |e|
               results << get_instance(service, e)
             end
@@ -453,4 +453,3 @@ module GCal4Ruby
     end
   end
 end
-

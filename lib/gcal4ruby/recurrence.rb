@@ -91,16 +91,16 @@ module GCal4Ruby
           when 'DAILY'
             @frequency['daily'] = true
           when 'WEEKLY'
-            @frequency['weekly'] = args[:byday].split(',')
+            @frequency['weekly'] = args[:byday] && args[:byday].split(',')
           when 'MONTHLY'
             if args[:byday]
-              @frequency['monthly'] = args[:byday]
+              @frequency['monthly'] = args[:byday] || ""
               @frequency[:day_of_week] = true
             else
-              @frequency['monthly'] = args[:bymonthday].to_i
+              @frequency['monthly'] = args[:bymonthday] && args[:bymonthday].to_i
             end
           when 'YEARLY'
-            @frequency['yearly'] = args[:byyearday].to_i
+            @frequency['yearly'] = args[:byyearday] && args[:byyearday].to_i
           end
         elsif key == 'INTERVAL'
           @frequency[:interval] = value.to_i unless value.nil? || value.empty?
@@ -168,12 +168,12 @@ module GCal4Ruby
       if @all_day
         output += "DTSTART;VALUE=DATE:#{@start_time.utc.strftime("%Y%m%d")}\n"
       else
-        output += "DTSTART;VALUE=DATE-TIME:#{@start_time.utc.complete}\n"
+        output += "DTSTART;VALUE=DATE-TIME:#{@start_time.complete}\n"
       end
       if @all_day
         output += "DTEND;VALUE=DATE:#{@end_time.utc.strftime("%Y%m%d")}\n"
       else
-        output += "DTEND;VALUE=DATE-TIME:#{@end_time.utc.complete}\n"
+        output += "DTEND;VALUE=DATE-TIME:#{@end_time.complete}\n"
       end
       output += "RRULE:"
       if @frequency
